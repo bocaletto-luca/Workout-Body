@@ -1,7 +1,7 @@
 ---
 Workout-Body | API Free | WebAPP
-A web app for searching full-body exercises with detailed images and information.
 ---
+A web app for searching full-body exercises with detailed images and information.
 
 # Workout-Body 🏋️‍♂️
 
