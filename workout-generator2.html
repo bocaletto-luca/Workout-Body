@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- EN: Ensure proper scaling on mobile devices // IT: Assicura una corretta visualizzazione su dispositivi mobili -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Workout Generator</title>
+  
+  <!-- EN: Include Bootstrap CSS for responsive design // IT: Includi Bootstrap CSS per un design responsive -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+  
+  <style>
+    /* EN: Basic styling for body and container // IT: Stili base per il body e il container */
+    body {
+      background-color: #f8f9fa;
+      padding-top: 40px;
+      padding-bottom: 120px; /* Extra space for pagination and fixed footer / Spazio extra per paginazione e footer fisso */
+    }
+    .container {
+      max-width: 800px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    /* EN: Styling for the filter form // IT: Stile per il form di filtraggio */
+    #workoutForm {
+      margin-bottom: 30px;
+    }
+    /* EN: Styling for the exercises (workout) container // IT: Stile per il contenitore degli esercizi */
+    #workoutContainer {
+      margin-top: 20px;
+    }
+    .workout-card {
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .workout-card img {
+      object-fit: cover;
+      width: 100%;
+      height: 200px;
+    }
+    /* EN: Styling for the pagination container // IT: Stile per il contenitore di paginazione */
+    #paginationContainer {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    /* EN: Fixed footer styling // IT: Stile per il footer fisso */
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #343a40;
+      color: #fff;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- EN: App Title // IT: Titolo dell'app -->
+    <h1>Workout Generator</h1>
+    
+    <!-- EN: Filter form for selecting exercise type and intensity // IT: Form di filtraggio per selezionare il tipo di esercizio e l'intensità -->
+    <form id="workoutForm">
+      <div class="row g-3">
+        <!-- EN: Exercise Type selection // IT: Selezione del tipo di esercizio -->
+        <div class="col-md-6">
+          <label for="exerciseType" class="form-label">Exercise Type:</label>
+          <select id="exerciseType" class="form-select">
+            <option value="all">All</option>
+            <option value="strength">Strength</option>
+            <option value="cardio">Cardio</option>
+            <option value="flexibility">Flexibility</option>
+            <option value="balance">Balance</option>
+            <option value="warmup">Warmup</option>
+            <option value="core">Core</option>
+            <option value="hiit">HIIT</option>
+          </select>
+        </div>
+        <!-- EN: Intensity selection // IT: Selezione dell'intensità -->
+        <div class="col-md-6">
+          <label for="intensity" class="form-label">Intensity:</label>
+          <select id="intensity" class="form-select">
+            <option value="all">All</option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      <div class="text-center mt-3">
+        <button type="submit" class="btn btn-primary">Generate Workout</button>
+      </div>
+    </form>
+    
+    <!-- EN: Container to display the filtered exercises with pagination // IT: Contenitore per visualizzare gli esercizi filtrati con paginazione -->
+    <div id="workoutContainer" class="row"></div>
+    
+    <!-- EN: Pagination controls container // IT: Contenitore per i controlli di paginazione -->
+    <div id="paginationContainer"></div>
+  </div>
+  
+  <!-- EN: Fixed Footer // IT: Footer fisso -->
+  <footer>
+    Workout Generator - Bocaletto Luca
+  </footer>
+  
+  <!-- EN: Include Bootstrap Bundle JS (includes Popper) // IT: Includi Bootstrap Bundle JS (include Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    /*****************************************************************************************************
+     * EN: Workout Generator App with Pagination and Improved Filtering for Exercises with Images
+     * IT: Generatore di Allenamento con Paginazione e Filtraggio Migliorato (esercizi con immagini)
+     * -----------------------------------------------------------------------------------------------
+     * EN: This app fetches exercise data from a free exercise database (Free Exercise DB) and displays
+     *     all matching exercises based on user-selected exercise type and intensity. Only exercises that have
+     *     at least one image are included to ensure the display works correctly. The results are paginated
+     *     (10 exercises per page).
+     *
+     * IT: Questa app scarica i dati degli esercizi dalla Free Exercise DB e visualizza tutti gli esercizi
+     *     che corrispondono ai filtri selezionati (tipo di esercizio e intensità). Solo gli esercizi che hanno
+     *     almeno un'immagine vengono inclusi, per garantire una visualizzazione corretta. I risultati sono
+     *     impaginati (10 esercizi per pagina).
+     *****************************************************************************************************/
+    
+    // Global variables for exercises data and pagination
+    let exercisesData = [];
+    let filteredExercises = [];
+    let currentPage = 1;
+    const pageSize = 10;
+    let totalPages = 1;
+    
+    // URL to fetch exercises data from the Free Exercise DB on GitHub
+    const exercisesUrl = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json";
+    // URL prefix to access exercise images from the repository
+    const imagesPrefix = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+    
+    // Select DOM elements
+    const workoutForm = document.getElementById("workoutForm");
+    const exerciseTypeSelect = document.getElementById("exerciseType");
+    const intensitySelect = document.getElementById("intensity");
+    const workoutContainer = document.getElementById("workoutContainer");
+    const paginationContainer = document.getElementById("paginationContainer");
+    
+    /**
+     * EN: Fetch exercise data from the Free Exercise DB.
+     * IT: Scarica i dati degli esercizi dalla Free Exercise DB.
+     */
+    async function fetchExercises() {
+      try {
+        const response = await fetch(exercisesUrl);
+        if (!response.ok) {
+          throw new Error("Network response not OK: " + response.status);
+        }
+        const data = await response.json();
+        exercisesData = data;
+      } catch (error) {
+        console.error("Error fetching exercises data:", error);
+        workoutContainer.innerHTML = "<p class='text-center text-danger'>Error fetching exercises data. Please try again later.</p>";
+      }
+    }
+    
+    /**
+     * EN: Filter exercises based on selected exercise type, intensity, and ensure they have images.
+     * IT: Filtra gli esercizi in base al tipo di esercizio, all'intensità e assicura che abbiano immagini.
+     */
+    function filterExercises() {
+      const selectedType = exerciseTypeSelect.value.toLowerCase();
+      const selectedIntensity = intensitySelect.value.toLowerCase();
+      
+      // Start with all exercises
+      let filtered = [...exercisesData];
+      
+      // Filter by exercise type if not "all"
+      if (selectedType !== "all") {
+        filtered = filtered.filter(exercise =>
+          exercise.category && exercise.category.toLowerCase() === selectedType
+        );
+      }
+      
+      // Filter by intensity if not "all"
+      if (selectedIntensity !== "all") {
+        filtered = filtered.filter(exercise =>
+          exercise.level && exercise.level.toLowerCase() === selectedIntensity
+        );
+      }
+      
+      // EN: Only include exercises that have at least one image // IT: Includi solo gli esercizi che hanno almeno un'immagine
+      filtered = filtered.filter(exercise => Array.isArray(exercise.images) && exercise.images.length > 0);
+      
+      filteredExercises = filtered;
+      currentPage = 1; // Reset to first page on new filter
+      displayPaginatedExercises();
+    }
+    
+    /**
+     * EN: Display a paginated list of exercises.
+     * IT: Visualizza un elenco impaginato degli esercizi.
+     */
+    function displayPaginatedExercises() {
+      if (!filteredExercises || filteredExercises.length === 0) {
+        workoutContainer.innerHTML = "<p class='text-center text-danger'>No exercises found matching the selected criteria.</p>";
+        paginationContainer.innerHTML = "";
+        return;
+      }
+      
+      totalPages = Math.ceil(filteredExercises.length / pageSize);
+      const startIndex = (currentPage - 1) * pageSize;
+      const pageData = filteredExercises.slice(startIndex, startIndex + pageSize);
+      
+      displayExercises(pageData);
+      updatePaginationControls();
+    }
+    
+    /**
+     * EN: Display the given exercises as Bootstrap cards.
+     * IT: Visualizza gli esercizi forniti come card Bootstrap.
+     * @param {Array} exercises - Array of exercise objects to display.
+     */
+    function displayExercises(exercises) {
+      workoutContainer.innerHTML = "";
+      
+      exercises.forEach(exercise => {
+        // Create a responsive column
+        const colDiv = document.createElement("div");
+        colDiv.className = "col-12 col-md-6";
+        
+        // Create a Bootstrap card for the exercise
+        const card = document.createElement("div");
+        card.className = "card workout-card h-100";
+        
+        // Display the exercise image (use the first available image)
+        if (exercise.images && exercise.images.length > 0) {
+          const img = document.createElement("img");
+          img.src = imagesPrefix + exercise.images[0];
+          img.alt = exercise.name;
+          img.className = "card-img-top";
+          card.appendChild(img);
+        }
+        
+        // Create card body
+        const cardBody = document.createElement("div");
+        cardBody.className = "card-body d-flex flex-column";
+        
+        // Exercise name
+        const title = document.createElement("h5");
+        title.className = "card-title";
+        title.textContent = exercise.name;
+        cardBody.appendChild(title);
+        
+        // Intensity (Level)
+        const levelPara = document.createElement("p");
+        levelPara.className = "card-text";
+        levelPara.textContent = "Intensity: " + (exercise.level ? exercise.level : "N/A");
+        cardBody.appendChild(levelPara);
+        
+        // Equipment
+        const equipmentPara = document.createElement("p");
+        equipmentPara.className = "card-text";
+        equipmentPara.textContent = "Equipment: " + (exercise.equipment ? exercise.equipment : "None");
+        cardBody.appendChild(equipmentPara);
+        
+        // Primary Muscles
+        const musclesPara = document.createElement("p");
+        musclesPara.className = "card-text";
+        if (exercise.primaryMuscles && exercise.primaryMuscles.length > 0) {
+          musclesPara.textContent = "Primary Muscles: " + exercise.primaryMuscles.join(", ");
+        } else {
+          musclesPara.textContent = "Primary Muscles: N/A";
+        }
+        cardBody.appendChild(musclesPara);
+        
+        // Exercise instructions (first sentence only; truncate if too long)
+        if (exercise.instructions && exercise.instructions.length > 0) {
+          const instructionsPara = document.createElement("p");
+          instructionsPara.className = "card-text";
+          let instructionText = exercise.instructions[0];
+          if (instructionText.length > 150) {
+            instructionText = instructionText.substring(0, 150) + "...";
+          }
+          instructionsPara.textContent = "Instructions: " + instructionText;
+          cardBody.appendChild(instructionsPara);
+        }
+        
+        card.appendChild(cardBody);
+        colDiv.appendChild(card);
+        workoutContainer.appendChild(colDiv);
+      });
+    }
+    
+    /**
+     * EN: Update the pagination controls based on current page and total pages.
+     * IT: Aggiorna i controlli di paginazione in base alla pagina corrente e al totale delle pagine.
+     */
+    function updatePaginationControls() {
+      paginationContainer.innerHTML = "";
+      
+      // Create Previous button
+      const prevBtn = document.createElement("button");
+      prevBtn.className = "btn btn-secondary me-2";
+      prevBtn.textContent = "Previous";
+      prevBtn.disabled = currentPage <= 1;
+      prevBtn.addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage--;
+          displayPaginatedExercises();
+        }
+      });
+      
+      // Create Next button
+      const nextBtn = document.createElement("button");
+      nextBtn.className = "btn btn-secondary ms-2";
+      nextBtn.textContent = "Next";
+      nextBtn.disabled = currentPage >= totalPages;
+      nextBtn.addEventListener("click", () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          displayPaginatedExercises();
+        }
+      });
+      
+      // Create page info text
+      const pageInfo = document.createElement("span");
+      pageInfo.className = "mx-2";
+      pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+      
+      // Append pagination elements to the container
+      paginationContainer.appendChild(prevBtn);
+      paginationContainer.appendChild(pageInfo);
+      paginationContainer.appendChild(nextBtn);
+    }
+    
+    // EN: Add event listeners for the filter form actions // IT: Aggiungi listener per le azioni del form di filtraggio
+    workoutForm.addEventListener("submit", function(event) {
+      event.preventDefault();
+      filterExercises();
+    });
+    exerciseTypeSelect.addEventListener("change", filterExercises);
+    intensitySelect.addEventListener("change", filterExercises);
+    
+    // EN: On initial load, fetch exercise data and then apply filtering (showing only exercises with images) // IT: Al caricamento iniziale, scarica i dati degli esercizi e applica il filtraggio (visualizzando solo gli esercizi con immagini)
+    async function init() {
+      await fetchExercises();
+      filterExercises();
+    }
+    init();
+  </script>
+</body>
+</html>
