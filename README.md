@@ -1,5 +1,5 @@
 ---
-Workout-Body | API Free | WebAPP
+Workout-Body Generator | API Free | WebAPP
 ---
 A web app for searching full-body exercises with detailed images and information.
 
@@ -14,6 +14,8 @@ A web app for searching full-body exercises with detailed images and information
 ![CSS](https://img.shields.io/badge/CSS3-1572B6?style=flat-square&logo=css3&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=flat-square&logo=javascript&logoColor=black)
 ![API](https://img.shields.io/badge/API-OpenData-9cf?style=flat-square)
+
+[![Test Online](https://img.shields.io/badge/Test%20Online-Click%20Here-brightgreen?style=for-the-badge)](https://bocaletto-luca.github.io/Workout-Body/)
 
 ## 🔍 Overview
 
